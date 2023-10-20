@@ -1,0 +1,19 @@
+apiVersion: skaffold/v4beta7
+kind: Config
+metadata:
+  name: express-pss-denormalizer-skaffold
+build:
+  local:
+    push: false
+  artifacts:
+    - image: express-pss-denormalizer
+      docker:
+        dockerfile: Dockerfile
+deploy:
+  helm:
+    releases:
+      - name: express-pss-denormalizer
+        chartPath: helm
+        setValueTemplates:
+          image.repository: "{{.IMAGE_REPO_express_pss_denormalizer}}"
+          image.tag: "{{.IMAGE_TAG_express_pss_denormalizer}}@{{.IMAGE_DIGEST_express_pss_denormalizer}}"
