@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-pss-denormalizer-deployment
+  labels:
+    app: express-pss-denormalizer
+spec:
+{{- if .Values.replica_count }}
+  replicas: {{ .Values.replica_count }}
+{{- end }}
+  selector:
+    matchLabels:
+      app: express-pss-denormalizer
+  template:
+    metadata:
+      labels:
+        app: express-pss-denormalizer
+    spec:
+      containers:
+      - name: express-pss-denormalizer
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        ports:
+        - containerPort: {{ .Values.containerPort }}
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MONGO_URI
+          value: "mongodb://mongodb-service:27017/db"

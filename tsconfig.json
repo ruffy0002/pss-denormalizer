@@ -1,0 +1,48 @@
+{
+	"compilerOptions": {
+		/** Transpiler */
+		"target": "esnext",
+		"lib": ["dom", "esnext"], // "dom", "dom.iterable", "esnext"
+		"module": "commonjs", // esnext
+		"moduleResolution": "Node",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"sourceMap": true,
+		"skipLibCheck": true,
+		/** Project */
+		"rootDir": ".",
+		"outDir": "dist",
+		"typeRoots": [
+			"src/@types",
+			"./node_modules/@types"
+		],
+
+		/** Type Checking */
+		"strict": true,
+		"strictNullChecks": true,
+		"strictFunctionTypes": true,
+		"strictBindCallApply": true,
+		"strictPropertyInitialization": true,
+		"noImplicitThis": true,
+		"useUnknownInCatchVariables": true,
+		"noImplicitReturns": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"allowUnusedLabels": true,
+		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
+
+		/** Other */
+		// "noEmit": true,
+		// "allowJs": true,
+		// "jsx": "react-jsx",
+		// "skipLibCheck": true,
+		// "isolatedModules": true,
+		// "incremental": true
+	},
+	"ts-node": {
+		"require": ["tsconfig-paths/register"]
+	},
+	"include": ["./src"]
+}
