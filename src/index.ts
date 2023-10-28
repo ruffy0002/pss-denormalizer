@@ -7,7 +7,7 @@ import { PSS } from "./@types/pss"
 import "./schemas/OrganisationXSchema"
 import "./schemas/OrganisationSchema"
 import { Organisation } from "./@types/organisation"
-import { arrayOf } from "arktype"
+import { arrayOf, type } from "arktype"
 import { PSSDernormalized } from "./@types/pss"
 import { PSSDenormalizedModel } from "./schemas/PSSDenormalizedSchema"
 import { Transform } from "stream"
@@ -31,30 +31,12 @@ connection.on("error", (err) => {
 	console.error(`Connection error: ${err}`)
 })
 
-const getDenormalisedResult = async (chunk: any) => {
-	const { data: pss, problems: pssProblems } = PSS(chunk)
-	const [rawOrganisation, rawPssByOrganisation] = await Promise.all([
-		await OrganisationModel.findOne({
-			entityNo_ftstr: chunk.organisationId_str,
-		}).populate("organisationx"),
-		await PSSModel.find({
-			organisationId_str: chunk.organisationId_str,
-		}),
-	])
-	const { data: organisation, problems: organisationProblems } =
-		Organisation(rawOrganisation)
-
-	const { data: pssByOrganisation, problems: pssByOrganisationProblems } =
-		arrayOf(PSS)(rawPssByOrganisation)
-	if (pssProblems || organisationProblems || pssByOrganisationProblems)
-		throw new Error(
-			JSON.stringify({
-				pssProblems,
-				organisationProblems,
-				pssByOrganisationProblems,
-			})
-		)
-	const isRegistered = pss.status_ftstr === "Registered"
+const getDenormalisedResult = async (
+	pss: PSS,
+	organisation: Organisation,
+	submission_no: string,
+	isRegistered: boolean
+) => {
 	return {
 		country: isRegistered
 			? organisation.primaryAddr_obj.country_ftstr
@@ -106,59 +88,111 @@ const getDenormalisedResult = async (chunk: any) => {
 		latitude: isRegistered
 			? organisation.primaryAddr_obj.geoCoord_obj.coordinates[1]
 			: pss.geoCoord_obj.coordinates[1],
-		submission_no: isRegistered
-			? pssByOrganisation.map((x) => x.submissionNo_ftstr).join(",")
-			: pss.submissionNo_ftstr,
+		submission_no: submission_no,
 	} satisfies PSSDernormalized
 }
 
 app.get("/api", async (req, res) => {
 	try {
-		let batch = 0
-		const batchSize = 500
-		let buffer: Promise<any>[] = []
+		const submissionNoByOrganisation = new Map<string, string>()
+		const organisations = new Map<string, Organisation>()
+
 		const transform = new Transform({
 			objectMode: true,
 			async transform(chunk, encoding, callback) {
-				buffer.push(getDenormalisedResult(chunk))
-				if (buffer.length >= batchSize) {
-					this.push(buffer)
-					buffer = []
+				try {
+					const calls = []
+					const { data: pss, problems: pssProblems } = PSS(chunk)
+					if (pssProblems)
+						throw new Error(JSON.stringify(pssProblems))
+
+					const isRegistered = pss.status_ftstr === "Registered"
+
+					if (
+						isRegistered &&
+						!submissionNoByOrganisation.has(pss.organisationId_str)
+					) {
+						calls.push(
+							(async () => {
+								const rawPssByOrganisation =
+									await PSSModel.find(
+										{
+											organisationId_str:
+												chunk.organisationId_str,
+										},
+										{
+											submissionNo_ftstr: 1,
+											_id: 0,
+										}
+									)
+
+								const { data, problems } = arrayOf(
+									type({ submissionNo_ftstr: "string" })
+								)(rawPssByOrganisation)
+
+								if (problems)
+									throw new Error(JSON.stringify(problems))
+								submissionNoByOrganisation.set(
+									pss.organisationId_str,
+									data
+										.map((x) => x.submissionNo_ftstr)
+										.join(",")
+								)
+							})()
+						)
+					}
+
+					if (!organisations.has(pss.organisationId_str)) {
+						calls.push(
+							(async () => {
+								const rawOrganisation =
+									await OrganisationModel.findOne({
+										entityNo_ftstr: pss.organisationId_str,
+									}).populate("organisationx")
+
+								const {
+									data: organisation,
+									problems: organisationProblems,
+								} = Organisation(rawOrganisation)
+
+								if (organisationProblems) {
+									throw new Error(
+										JSON.stringify(organisation)
+									)
+								}
+
+								organisations.set(
+									pss.organisationId_str,
+									organisation
+								)
+							})()
+						)
+					}
+
+					await Promise.all(calls)
+
+					const pssDenormalised = await getDenormalisedResult(
+						pss,
+						organisations.get(pss.organisationId_str)!,
+						isRegistered
+							? submissionNoByOrganisation.get(
+									pss.organisationId_str
+							  )!
+							: pss.submissionNo_ftstr,
+						isRegistered
+					)
+
+					await PSSDenormalizedModel.create(pssDenormalised)
+				} catch (err) {
+					console.error(err)
 				}
-				callback()
-			},
-			async flush(callback) {
-				if (buffer.length > 0) {
-					this.push(buffer)
-					buffer = []
-				}
+
 				callback()
 			},
 		})
-
 		await PSSDenormalizedModel.deleteMany({})
 
-		PSSModel.find({})
-			.cursor()
-			.pipe(transform)
-			.pipe(
-				new Transform({
-					objectMode: true,
-					async transform(chunk, encoding, callback) {
-						const start = new Date()
-						const items = await Promise.all(chunk)
-						await PSSDenormalizedModel.insertMany(items)
-						const end = new Date()
-						console.log(
-							`Batch ${batch++}, ${items.length} items in ${
-								(end.getTime() - start.getTime()) / 1000
-							}s`
-						)
-						callback()
-					},
-				})
-			)
-
+		PSSModel.find({}).cursor().pipe(transform).pipe(res)
 		return
 	} catch (err) {
 		console.error(err)
