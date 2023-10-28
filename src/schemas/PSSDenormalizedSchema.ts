@@ -14,6 +14,7 @@ const PSSDenormalizedSchema = new Schema(
 		building_name: String,
 		block_street: String,
 		level_unit: String,
+		address: String,
 		company_name: String,
 		present: Boolean,
 		security: Boolean,
@@ -28,9 +29,9 @@ const PSSDenormalizedSchema = new Schema(
 	}
 )
 
-const PSSDenormalized = mongoose.model(
+const PSSDenormalizedModel = mongoose.model(
 	"pss_denormalized",
 	PSSDenormalizedSchema
 )
 
-export { PSSDenormalized, PSSDenormalizedSchema }
+export { PSSDenormalizedModel, PSSDenormalizedSchema }

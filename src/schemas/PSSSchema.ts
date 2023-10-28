@@ -9,9 +9,10 @@ const PSSScehma = new Schema(
 		purpose_ftstr: String,
 		directorateDisplayName_ftstr: String,
 		sectionDisplayName_ftstr: String,
-		submissionNo_str: String,
+		submissionNo_ftstr: String,
 		addr_ft: String,
 		companyName_ftstr: String,
+		organisationId_str: String,
 		userPresentAtAddr_b: Boolean,
 		userOfPhysicalSetup_ftstr_mv: [String],
 		geoCoord_obj: {
@@ -25,13 +26,21 @@ const PSSScehma = new Schema(
 				required: true,
 			},
 		},
-		organisationId_str: String,
 	},
 	{
 		collection: "pss",
+		toJSON: { virtuals: true },
+		toObject: { virtuals: true },
 	}
 )
 
-const PSS = mongoose.model("pss", PSSScehma)
+PSSScehma.virtual("organisation", {
+	ref: "organisation",
+	localField: "organisationId_str",
+	foreignField: "entityNo_ftstr",
+	justOne: true,
+})
 
-export { PSSScehma, PSS }
+const PSSModel = mongoose.model("pss", PSSScehma)
+
+export { PSSScehma, PSSModel }
