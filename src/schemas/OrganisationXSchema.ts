@@ -3,7 +3,7 @@ const { Schema } = mongoose
 
 const OrganisationXSchema = new Schema(
 	{
-		organisationId_str: String,
+		organisationId_str: Schema.Types.ObjectId,
 		purpose_ftstr: String,
 		siaFlag_b: Boolean,
 		pDept_ftstr_mv: [String],
