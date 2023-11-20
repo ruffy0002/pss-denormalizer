@@ -12,7 +12,7 @@ import { PSSDernormalized } from "./@types/pss"
 import { PSSDenormalizedModel } from "./schemas/PSSDenormalizedSchema"
 import { Transform } from "stream"
 
-const PORT = process.env.PORT || 3000
+const PORT = 3000
 const CONNECTION_STRING = `${process.env.MONGO_URI}`
 
 const app = express()
@@ -91,6 +91,12 @@ const getDenormalisedResult = async (
 		submission_no: submission_no,
 	} satisfies PSSDernormalized
 }
+
+app.get("/health", (req, res) => {
+	return mongoose.connection.readyState === 1
+		? res.sendStatus(200)
+		: res.sendStatus(500)
+})
 
 app.get("/api", async (req, res) => {
 	try {
