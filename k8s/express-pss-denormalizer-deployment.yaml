@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: express-pss-denormalizer-deployment
+  labels:
+    app: express-pss-denormalizer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: express-pss-denormalizer
+  template:
+    metadata:
+      labels:
+        app: express-pss-denormalizer
+    spec:
+      initContainers:
+      - name: wait-for-mongodb
+        image: mongo:latest
+        command:
+        - bash
+        - "-c"
+        - |
+          until mongosh --host=mongodb-service:27017 --eval "db.getSiblingDB('db').runCommand({ ping: 1 })" --quiet; do
+            sleep 1
+          done
+      containers:
+      - name: express-pss-denormalizer
+        image: express-pss-denormalizer:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+        - secretRef:
+            name: express-pss-denormalizer-secret
+        ports:
+        - containerPort: 3000
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 15
+          periodSeconds: 20
