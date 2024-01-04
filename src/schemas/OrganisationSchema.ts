@@ -3,7 +3,7 @@ const { Schema } = mongoose
 
 const OrganisationSchema = new Schema(
 	{
-		entityNo_ftstr: String,
+		entityNo_ftstr: Schema.Types.ObjectId,
 		name_ftstr: String,
 		primaryAddr_obj: {
 			country_ftstr: String,

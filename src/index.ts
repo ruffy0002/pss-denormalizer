@@ -116,7 +116,9 @@ app.get("/api", async (req, res) => {
 
 					if (
 						isRegistered &&
-						!submissionNoByOrganisation.has(pss.organisationId_str)
+						!submissionNoByOrganisation.has(
+							pss.organisationId_str.toString()
+						)
 					) {
 						calls.push(
 							(async () => {
@@ -133,15 +135,17 @@ app.get("/api", async (req, res) => {
 									)
 
 								const { data, problems } = arrayOf(
-									type({ submissionNo_ftstr: "string" })
+									type({ submissionNo_ftstr: "any" })
 								)(rawPssByOrganisation)
 
 								if (problems)
 									throw new Error(JSON.stringify(problems))
 								submissionNoByOrganisation.set(
-									pss.organisationId_str,
+									pss.organisationId_str.toString(),
 									data
-										.map((x) => x.submissionNo_ftstr)
+										.map((x) =>
+											x.submissionNo_ftstr.toString()
+										)
 										.join(",")
 								)
 							})()
@@ -168,7 +172,7 @@ app.get("/api", async (req, res) => {
 								}
 
 								organisations.set(
-									pss.organisationId_str,
+									pss.organisationId_str.toString(),
 									organisation
 								)
 							})()
@@ -176,13 +180,12 @@ app.get("/api", async (req, res) => {
 					}
 
 					await Promise.all(calls)
-
 					const pssDenormalised = await getDenormalisedResult(
 						pss,
-						organisations.get(pss.organisationId_str)!,
+						organisations.get(pss.organisationId_str.toString())!,
 						isRegistered
 							? submissionNoByOrganisation.get(
-									pss.organisationId_str
+									pss.organisationId_str.toString()
 							  )!
 							: pss.submissionNo_ftstr,
 						isRegistered
@@ -196,9 +199,18 @@ app.get("/api", async (req, res) => {
 				callback()
 			},
 		})
-		await PSSDenormalizedModel.deleteMany({})
 
-		PSSModel.find({}).cursor().pipe(transform).pipe(res)
+		console.time("denormalize")
+		res.flushHeaders()
+		await PSSDenormalizedModel.deleteMany({})
+		PSSModel.find({})
+			.cursor()
+			.pipe(transform)
+			.on("finish", () => {
+				res.end()
+				console.timeEnd("denormalize")
+			})
+		res.end()
 		return
 	} catch (err) {
 		console.error(err)

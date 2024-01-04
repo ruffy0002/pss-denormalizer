@@ -9,10 +9,10 @@ const PSSScehma = new Schema(
 		purpose_ftstr: String,
 		directorateDisplayName_ftstr: String,
 		sectionDisplayName_ftstr: String,
-		submissionNo_ftstr: String,
+		submissionNo_ftstr: Schema.Types.ObjectId,
 		addr_ft: String,
 		companyName_ftstr: String,
-		organisationId_str: String,
+		organisationId_str: Schema.Types.ObjectId,
 		userPresentAtAddr_b: Boolean,
 		userOfPhysicalSetup_ftstr_mv: [String],
 		geoCoord_obj: {

@@ -8,10 +8,10 @@ export const PSS = type({
 	purpose_ftstr: "string",
 	directorateDisplayName_ftstr: "string",
 	sectionDisplayName_ftstr: "string",
-	submissionNo_ftstr: "string",
+	submissionNo_ftstr: "any",
 	addr_ft: "string",
 	companyName_ftstr: "string",
-	organisationId_str: "string",
+	organisationId_str: "any",
 	userPresentAtAddr_b: "boolean",
 	userOfPhysicalSetup_ftstr_mv: "string[]",
 	geoCoord_obj: type({
