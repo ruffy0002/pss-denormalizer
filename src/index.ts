@@ -79,8 +79,8 @@ const getDenormalisedResult = async (
 		security: isRegistered ? organisation.organisationx?.siaFlag_b : null,
 		organisation_id: isRegistered ? organisation.entityNo_ftstr : null,
 		username: isRegistered
-			? pss.userOfPhysicalSetup_ftstr_mv.join(",")
-			: "",
+			? ""
+			: pss.userOfPhysicalSetup_ftstr_mv.join(","),
 		user_type: null,
 		longitude: isRegistered
 			? organisation.primaryAddr_obj.geoCoord_obj.coordinates[0]
