@@ -1,0 +1,27 @@
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  IMAGE_NAME: express-pss-denormalizer
+  REGISTRY_HOST: localhost:5000
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_NAME .
+    - docker build . -t $IMAGE_NAME -f ./Dockerfile
+
+push:
+  stage: push
+  script:
+    - docker tag $IMAGE_NAME $REGISTRY_HOST/$IMAGE_NAME
+    - docker push $REGISTRY_HOST/$IMAGE_NAME
+
+deploy:
+  stage: deploy
+  script:
+    - kubectl create secret generic express-pss-denormalizer-secret --from-env-file=../../../.env
+    - kubectl apply -f ./k8s/express-pss-denormalizer-deployment.yaml
+    - kubectl apply -f ./k8s/express-pss-denormalizer-service.yaml
